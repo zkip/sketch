@@ -1,0 +1,6 @@
+.DS_Store
+/app/node_modules/
+/app/src/node_modules/@sapper/
+/app/yarn-error.log
+/app/cypress/screenshots/
+/app/__sapper__/
