@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        * {
+            position: relative;
+            margin: 0;
+            padding: 0;
+        }
+        .stage {
+            margin: 0;
+            padding: 0;
+            position: absolute;
+        }
+    </style>
+    <script>
+        let cvs=null,ctx=null;
+        let view={width:0,height:0};
+        let mpos={x:0,y:0};
+
+        let vertex=[[100,200],[200,500],[140,75]];
+
+        // let circleVertex=[];
+
+        function genCircleVertex({radius,start=0,sweep=Math.PI*2,pos,segments}){
+            let step=1/segments;
+            let ret=[];
+            for(let t=0;t<=sweep;t+=step){
+                let x=Math.cos(start+t)*radius;
+                let y=Math.sin(start+t)*radius;
+                ret.push([x,y]);
+            }
+            return ret;
+        }
+
+        function genLineVertex({a,b}){
+            let ret=[];
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(a[0],a[1]);
+            ctx.lineTo(b[0],b[1]);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawByVertex(ctx,vertex,opt={closed: true}){
+            ctx.save();
+            ctx.beginPath();
+            ctx.strokeStyle="red";
+            ctx.moveTo(vertex[0][0],vertex[0][1]);
+            for(let i=1;i<vertex.length;i++){
+                ctx.lineTo(vertex[i][0],vertex[i][1]);
+            }
+            if(opt.closed){
+                ctx.closePath();
+            }
+            ctx.stroke();
+            for(let i=0;i<vertex.length;i++){
+                ctx.beginPath();
+                ctx.strokeStyle="#742093";
+                ctx.arc(vertex[i][0],vertex[i][1],5,0,Math.PI*2);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function draw({ctx}){
+            drawByVertex(ctx,genCircleVertex({start: Math.PI*2*mpos.x/view.width,sweep: Math.PI*2*mpos.y/view.height,radius: 100,segments: 2}));
+            drawByVertex(ctx,genLineVertex({a:[0,0],b:[100,100]}));
+        }
+
+        function init(){
+            if(cvs){
+                cvs.width=innerWidth;
+                cvs.height=innerHeight;
+                view.width=cvs.width;
+                view.height=cvs.height;
+            }
+        }
+        function start(){
+            cvs=document.querySelector(".stage");
+            ctx=cvs.getContext("2d");
+            init();
+        }
+        addEventListener("load",start);
+        addEventListener("resize",init);
+        addEventListener("mousemove",({layerX,layerY})=>{
+            mpos.x=layerX;
+            mpos.y=layerY;
+        });
+        (function (){
+            if(cvs&&ctx){
+                ctx.save();
+                ctx.clearRect(0,0,view.width,view.height);
+                ctx.translate(view.width/2,view.height/2);
+                draw({ctx});
+                ctx.restore();
+            }
+            requestAnimationFrame(arguments.callee);
+        })()
+    </script>
+</head>
+<body>
+    <canvas class="stage" />
+</body>
+</html>

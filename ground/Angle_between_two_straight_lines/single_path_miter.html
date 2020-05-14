@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+		<script src="Vector.js"></script>
+		<script src="single_path_miter.js"></script>
+		<script src="glue.js"></script>
+		<style>
+			* {
+				position: relative;
+			}
+			html,
+			body {
+				display: flex;
+				flex: 1;
+				min-height: 100%;
+				user-select: none;
+			}
+			.stage {
+				display: grid;
+				flex: 1;
+				border: 1px solid red;
+			}
+			.stage > * {
+				grid-row: 1 / 2;
+				grid-column: 1 / 2;
+			}
+			.stage > canvas {
+				position: absolute;
+			}
+			.stage > .info {
+				pointer-events: none;
+			}
+			.stage > .info > * {
+				pointer-events: all;
+			}
+		</style>
+		<title>Document</title>
+	</head>
+	<body>
+		<div class="stage">
+			<div class="info"></div>
+			<canvas></canvas>
+		</div>
+	</body>
+</html>
