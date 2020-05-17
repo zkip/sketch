@@ -6,6 +6,7 @@ function start({ draw, log, toLocal }) {
 		[320, 170],
 		[100, 340],
 		[300, 140],
+		[430, 210],
 		[0, 0],
 	];
 
@@ -13,11 +14,12 @@ function start({ draw, log, toLocal }) {
 	const strokeStyle = [, , , "blue"];
 	const strokeWidth = [, , , 1];
 
-	const fillOrder = [0, 1, 2, 3];
+	const fillOrder = [0, 1, 2, 3, 4];
 	const strokeOrder = [
 		[0, 1],
 		[0, 2],
 		[0, 3],
+		[0, 4],
 	];
 
 	const gapOrder = [];
@@ -140,13 +142,18 @@ function start({ draw, log, toLocal }) {
 		}
 
 		function drawGapPts() {
+			let i = 0,
+				count = gapOrder.length;
 			for (let [si, ei] of gapOrder) {
 				const sp = ps[si],
 					ep = ps[ei];
 				ctx.save();
-				ctx.strokeStyle = "#ee3a";
+				ctx.lineWidth = 3;
+				const r = ((i++ / count) * 10) >> 0;
+				// ctx.strokeStyle = `#f${10 - r}${r}`;
+				ctx.strokeStyle = `#a6d`;
 				ctx.beginPath();
-				ctx.setLineDash([5]);
+				// ctx.setLineDash([i * 3]);
 				ctx.moveTo(...sp);
 				ctx.lineTo(...ep);
 
@@ -167,45 +174,46 @@ function start({ draw, log, toLocal }) {
 			count = strokeOrder.length;
 
 		function compute() {
-			const rpts = [];
-			let _lastVec,
-				_firstVec,
-				_has = false;
-			let spt;
+			const vecs = new Array(count);
 
-			for (let [si, ei] of strokeOrder) {
-				const sp = ps[si],
-					ep = ps[ei];
+			const rpts = strokeOrder
+				.map(([si, ei], idx) => {
+					const sp = ps[si],
+						ep = ps[ei];
 
-				spt = sp;
+					const center = Vector(...sp);
 
-				const vec = Vector().by(sp, ep);
+					const vec = Vector().by(sp, ep);
+					const vec_payload = [vec, vec.angle(), center];
+					vecs[idx] = vec_payload;
 
-				if (!_has) {
-					_firstVec = vec;
-					_has = true;
-				}
+					return vec_payload;
+				})
+				.sort((a, b) => a[1] - b[1])
+				.map(([vec, angle, center], idx, vecs) => {
+					let resultAngle = 0;
+					let previousAngle;
+					if (idx === 0) {
+						resultAngle = Math.PI;
+						// The one's previous is last one.
+						previousAngle = vecs[count - 1][1];
+					} else {
+						previousAngle = vecs[idx - 1][1];
+					}
 
-				if (_lastVec) {
-					const angle = (vec.angle() + _lastVec.angle()) / 2;
-					rpts.push(
-						Vector(100, 0)
-							.rotate(angle)
-							.add(Vector(...sp))
-							.toFlat()
-					);
-				}
+					resultAngle += (angle + previousAngle) / 2;
 
-				_lastVec = vec;
-			}
+					const diffAngle = angle - previousAngle;
 
-			const angle = (_firstVec.angle() + _lastVec.angle()) / 2;
-			rpts.push(
-				Vector(100, 0)
-					.rotate(angle)
-					.add(Vector(...spt))
-					.toFlat()
-			);
+					const len = Math.abs(10 / Math.sin(diffAngle / 2));
+
+					return Vector(len, 0)
+						.rotate(resultAngle)
+						.add(center)
+						.toFlat();
+				});
+
+			log(rpts.map(([_, angle]) => Math.floor(angle)));
 
 			return rpts;
 		}
@@ -216,8 +224,6 @@ function start({ draw, log, toLocal }) {
 			ps.push([0, 0]);
 			gapOrder.push([sid, id]);
 		}
-
-		console.log(compute());
 
 		return function update() {
 			const rpts = compute();
