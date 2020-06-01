@@ -98,6 +98,8 @@ function start({ draw, log, toLocal }) {
 
 	const updateGapPts = genComputeGapPts();
 	draw(({ ctx }) => {
+		let outAngleIdx;
+
 		function drawPts() {
 			for (let i of fillOrder) {
 				const p = ps[i];
@@ -147,23 +149,56 @@ function start({ draw, log, toLocal }) {
 			for (let [si, ei] of gapOrder) {
 				const sp = ps[si],
 					ep = ps[ei];
+				const strokeStyle = outAngleIdx === i ? 'red' : '#a6d';
+
 				ctx.save();
 				ctx.lineWidth = 3;
-				const r = ((i++ / count) * 10) >> 0;
-				// ctx.strokeStyle = `#f${10 - r}${r}`;
-				ctx.strokeStyle = `#a6d`;
+				ctx.strokeStyle = strokeStyle;
 				ctx.beginPath();
-				// ctx.setLineDash([i * 3]);
 				ctx.moveTo(...sp);
 				ctx.lineTo(...ep);
 
 				ctx.stroke();
 				ctx.restore();
+
+				i++;
 			}
 		}
 
-		updateGapPts();
+		const angles = updateGapPts();
+		// console.log(angles);
 
+		let info = "";
+		info += "angles: " + angles.map(v => toAngle(v).toFixed(2)).join("--") + "<br>";
+
+		const { abs } = Math;
+
+		const GapAngleCollectorMapper = (angle, i, arr) => {
+			const isFirst = i === 0;
+
+			if (isFirst) {
+				return Math.PI * 2 - last(arr) + first(arr);
+			} else {
+				const prevOne = arr[i - 1];
+				return abs(prevOne - angle);
+			}
+
+		}
+
+		const MaxiumOnesIndexFinder = ([prev, prevIdx], current, idx, arr) => {
+			return prev > current ? [prev, prevIdx] : [current, idx]
+		}
+
+		info += "gap angles: " + angles.map(GapAngleCollectorMapper).map(v => toAngle(v).toFixed(2)).join("--") + "<br>";
+
+		const collectedGapAngles = angles.map(GapAngleCollectorMapper);
+		const [maxGapAngle, maxGapAngleIdx] = collectedGapAngles.reduce(MaxiumOnesIndexFinder, [collectedGapAngles[0], 0]);
+
+		if (maxGapAngle > Math.PI) {
+			outAngleIdx = maxGapAngleIdx;
+		}
+
+		log(info);
 		drawPts();
 		drawLines();
 		drawGapPts();
@@ -175,6 +210,7 @@ function start({ draw, log, toLocal }) {
 
 		function compute() {
 			const vecs = new Array(count);
+			const tempAngles = vecs.slice();
 
 			const rpts = strokeOrder
 				.map(([si, ei], idx) => {
@@ -190,7 +226,7 @@ function start({ draw, log, toLocal }) {
 					return vec_payload;
 				})
 				.sort((a, b) => a[1] - b[1])
-				.map(([vec, angle, center], idx, vecs) => {
+				.map(([_, angle, center], idx, vecs) => {
 					let resultAngle = 0;
 					let previousAngle;
 					if (idx === 0) {
@@ -207,15 +243,17 @@ function start({ draw, log, toLocal }) {
 
 					const len = Math.abs(10 / Math.sin(diffAngle / 2));
 
+					tempAngles[idx] = angle;
+
 					return Vector(len, 0)
 						.rotate(resultAngle)
 						.add(center)
 						.toFlat();
 				});
 
-			log(rpts.map(([_, angle]) => Math.floor(angle)));
+			// log(rpts.map(([_, angle]) => Math.floor(angle)));
 
-			return rpts;
+			return [rpts, tempAngles];
 		}
 
 		for (let i = 0; i < count; i++) {
@@ -226,10 +264,11 @@ function start({ draw, log, toLocal }) {
 		}
 
 		return function update() {
-			const rpts = compute();
+			const [rpts, angles] = compute();
 			for (let i = 0; i < count; i++) {
 				ps[startID + i] = rpts[i];
 			}
+			return angles;
 		};
 	}
 
@@ -298,4 +337,12 @@ function toRadian(angle) {
 
 function getDistance(...ps) {
 	return sqrt(pow(ps[0][0] - ps[1][0], 2) + pow(ps[0][1] - ps[1][1], 2));
+}
+
+function first(arr) {
+	return arr[0];
+}
+
+function last(arr) {
+	return arr[arr.length - 1];
 }
